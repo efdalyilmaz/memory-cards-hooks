@@ -1,28 +1,86 @@
-import React, { Component } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useEffect } from 'react';
+import Board from './components/board';
 
-class App extends Component {
-  render() {
+import initializeDeck from './deck';
+
+export default function App() {
+    const [cards, setCards] = useState([]);
+    const [flipped, setFlipped] = useState([]);
+    const [dimension, setDimesion] = useState();
+    const [solved, setSolved] = useState([]);
+    const [disabled, setDisabled] = useState(false);
+
+    useEffect(() => {
+      resizeBoard();
+      setCards(initializeDeck());
+      preloadImages();
+    },
+    []);
+
+    useEffect(() => {
+      preloadImages();
+    }, cards)
+
+    useEffect(() => {
+      const resizeListener = window.addEventListener('resize', resizeBoard);
+      return () => window.removeEventListener('resize', resizeListener);
+    })
+
+    const resizeBoard =() =>{
+      setDimesion(Math.min(document.documentElement.clientWidth,document.documentElement.clientHeight));
+    }
+
+    const resetCards = () => {
+      setFlipped([]);
+      setDisabled(false);
+    }
+
+    const sameCardClicked = (flipped, id) => flipped.includes(id);
+
+    const isMatched = (id) => {
+      const clickedCard = cards.find(card => card.id === id);
+      const flippedCard = cards.find(card => card.id === flipped[0]);
+
+      return flippedCard.type === clickedCard.type;
+    }
+
+    const handleClick = (id) => {
+      setDisabled(true);
+      if(flipped.length === 0){
+        setFlipped([id]);
+        setDisabled(false);
+      }else{
+        if(sameCardClicked(flipped, id)){
+          return;
+        }
+        setFlipped([flipped[0],id]);
+        if(isMatched(id)){
+          setSolved([...solved, flipped[0], id]);
+          resetCards();
+        }else{
+          setTimeout(resetCards, 2000);
+        }
+      }
+    };
+
+    const preloadImages = () => {
+      cards.forEach( (card) => {
+        const src = `/img/${card.type}.png`;
+        new Image().src = src;
+      });
+    };
+
     return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </header>
+      <div>
+       <h2>Can you remember where the cards are?</h2>
+       <Board
+       dimension={dimension}
+       cards={cards}
+       flipped={flipped}
+       handleClick={handleClick}
+       disabled={disabled}
+       solved={solved}
+       />
       </div>
     );
-  }
 }
-
-export default App;
